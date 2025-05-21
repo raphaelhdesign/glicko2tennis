@@ -1,10 +1,8 @@
-
 import streamlit as st
-import pandas as pd
 import requests
-import re
 
 st.set_page_config(page_title="Tennis Match Predictor", layout="wide")
+
 st.markdown("""
 <style>
 [data-testid="stAppViewContainer"], [data-testid="stSidebar"], [data-testid="stHeader"] {
@@ -19,58 +17,27 @@ st.markdown("""
 """, unsafe_allow_html=True)
 
 st.title("Previsão de Partidas de Tênis")
-st.write("Escolha a categoria (ATP ou WTA), faça upload da lista de jogadores permitidos, e selecione dois jogadores para a simulação.")
+st.write("Escolha a categoria (ATP ou WTA), selecione dois jogadores e veja a previsão de vitória baseada na API.")
 
 category = st.selectbox("Categoria:", ["ATP", "WTA"])
 
-uploaded_file = st.file_uploader("Upload de arquivo (.txt ou .csv) com lista de jogadores permitidos", type=['txt', 'csv'])
+# Define paths for player files
+player_file_path = f"https://raw.githubusercontent.com/SEU_USUARIO/SEU_REPOSITORIO/main/players_names_{category.lower()}.txt"
 
-players = []
-if uploaded_file:
-    if uploaded_file.name.lower().endswith('.txt'):
-        content = uploaded_file.read().decode('utf-8', errors='ignore')
-        lines = content.splitlines()
-        for line in lines:
-            if not line.strip():
-                continue
-            parts = line.split()
-            if not parts:
-                continue
-            try:
-                float(parts[-1])
-                numeric = True
-            except:
-                numeric = False
-            if numeric and len(parts) > 1:
-                name = " ".join(parts[:-1])
-            else:
-                name = " ".join(parts)
-            if name:
-                players.append(name.strip())
+@st.cache_data
+def load_players(url):
+    try:
+        import urllib.request
+        response = urllib.request.urlopen(url)
+        lines = response.read().decode('utf-8').splitlines()
+        return [line.strip() for line in lines if line.strip()]
+    except Exception as e:
+        st.error(f"Erro ao carregar lista de jogadores: {e}")
+        return []
 
-    elif uploaded_file.name.lower().endswith('.csv'):
-        try:
-            df = pd.read_csv(uploaded_file, header=None)
-            if not df.empty:
-                col = df.iloc[:, 0].astype(str)
-                names = col.str.strip().tolist()
-                if names and re.match(r'player', names[0], re.IGNORECASE):
-                    names = names[1:]
-                for name in names:
-                    if name and not re.match(r'^\d+(\.\d+)?$', name):
-                        players.append(name)
-        except Exception as e:
-            st.error(f"Erro ao ler arquivo CSV: {e}")
-            players = []
-
-    else:
-        st.error("Formato de arquivo não suportado. Use .txt ou .csv.")
-        players = []
-
-    players = list(dict.fromkeys([p for p in players if p]))
+players = load_players(player_file_path)
 
 if players:
-    st.success(f"{len(players)} jogadores carregados com sucesso.")
     col1, col2 = st.columns(2)
     with col1:
         player1 = st.selectbox("Jogador 1", players)
@@ -87,18 +54,25 @@ if players:
                 response = requests.post(endpoint, json=payload)
                 if response.status_code == 200:
                     result = response.json()
+                    p1_prob = result["player1_win_probability"]
+                    p2_prob = 1 - p1_prob
+                    p1_odds = round(1 / p1_prob, 2) if p1_prob > 0 else "∞"
+                    p2_odds = round(1 / p2_prob, 2) if p2_prob > 0 else "∞"
+
                     st.success("Resultado da simulação:")
-                    st.json(result)
+                    st.markdown(f"""
+**{player1}**
+- Probabilidade de vitória: **{p1_prob * 100:.2f}%**
+- Odds implícita: **{p1_odds}**
+
+**{player2}**
+- Probabilidade de vitória: **{p2_prob * 100:.2f}%**
+- Odds implícita: **{p2_odds}**
+""")
                 else:
-                    st.error(f"Erro na API (status code {response.status_code}).")
-                    try:
-                        st.write(response.json())
-                    except Exception:
-                        st.write(response.text)
+                    st.error(f"Erro na API (status code {response.status_code})")
+                    st.text(response.text)
             except requests.exceptions.RequestException as e:
                 st.error(f"Erro de conexão com a API: {e}")
 else:
-    if uploaded_file and not players:
-        st.warning("Nenhum jogador válido encontrado no arquivo.")
-    else:
-        st.info("Aguardando upload do arquivo de jogadores (.txt ou .csv).")
+    st.info("Carregando lista de jogadores... Verifique se o arquivo está disponível no GitHub.")
