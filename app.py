@@ -22,7 +22,7 @@ st.write("Escolha a categoria (ATP ou WTA), selecione dois jogadores e veja a pr
 category = st.selectbox("Categoria:", ["ATP", "WTA"])
 
 # Define paths for player files
-player_file_path = f"https://raw.githubusercontent.com/SEU_USUARIO/SEU_REPOSITORIO/main/players_names_{category.lower()}.txt"
+player_file_path = f"https://raw.githubusercontent.com/raphaelhdesign/glicko2tennis/main/players_names_{category.lower()}.txt"
 
 @st.cache_data
 def load_players(url):
