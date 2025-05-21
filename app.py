@@ -19,11 +19,6 @@ st.markdown("""
 st.title("Previsão de Partidas de Tênis")
 st.write("Escolha a categoria (ATP ou WTA), selecione dois jogadores e veja a previsão de vitória baseada na API.")
 
-category = st.selectbox("Categoria:", ["ATP", "WTA"])
-
-# Define paths for player files
-player_file_path = f"https://raw.githubusercontent.com/raphaelhdesign/glicko2tennis/main/players_names_{category.lower()}.txt"
-
 @st.cache_data
 def load_players(category):
     url = f"https://raw.githubusercontent.com/raphaelhdesign/glicko2tennis/main/players_names_{category.lower()}.txt"
@@ -36,7 +31,8 @@ def load_players(category):
         st.error(f"Erro ao carregar lista de jogadores: {e}")
         return []
 
-players = load_players(player_file_path)
+category = st.selectbox("Categoria:", ["ATP", "WTA"])
+players = load_players(category)
 
 if players:
     col1, col2 = st.columns(2)
