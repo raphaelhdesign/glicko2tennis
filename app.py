@@ -25,7 +25,8 @@ category = st.selectbox("Categoria:", ["ATP", "WTA"])
 player_file_path = f"https://raw.githubusercontent.com/raphaelhdesign/glicko2tennis/main/players_names_{category.lower()}.txt"
 
 @st.cache_data
-def load_players(url):
+def load_players(category):
+    url = f"https://raw.githubusercontent.com/raphaelhdesign/glicko2tennis/main/players_names_{category.lower()}.txt"
     try:
         import urllib.request
         response = urllib.request.urlopen(url)
